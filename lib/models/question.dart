@@ -1,114 +1,23 @@
-
-
+import 'package:mysql1/mysql1.dart';
+import 'package:quiz_project/database.dart';
 import 'quiz.dart';
 import 'answer.dart';
-import 'quiz_attempt.dart';
-void main() {
-  // print("Enter quiz title:");
-  // String quizTitle = stdin.readLineSync()!;
 
-  // Quiz quiz = Quiz(title: quizTitle, questions: []);
+enum QuestionType {
+  singleQuestion(1),
+  multipleQuestion(2);
 
-  // while (true) {
-  //   print("Enter question title (or 'q' to quit):");
-  //   String questionTitle = stdin.readLineSync()!;
-  //   if (questionTitle.toLowerCase() == 'q') {
-  //     break;
-  //   }
+  final int value;
+  const QuestionType(this.value);
 
-  //   print("Enter question type (singleQuestion or multipleQuestion):");
-  //   String questionTypeStr = stdin.readLineSync()!;
-  //   QuestionType questionType = questionTypeStr == "singleQuestion"
-  //       ? QuestionType.singleQuestion
-  //       : QuestionType.multipleQuestion;
-
-  //   Question question = Question(
-  //     id: quiz.questions!.length + 1, // Assuming IDs start from 1
-  //     quizId: 1, // Adjust as needed
-  //     title: questionTitle,
-  //     questionType: questionType,
-  //     answers: [],
-  //   );
-
-  //   while (true) {
-  //     print("Enter answer text (or 'q' to quit):");
-  //     String answerText = stdin.readLineSync()!;
-  //     if (answerText.toLowerCase() == 'q') {
-  //       break;
-  //     }
-
-  //     print("Is the answer correct? (true/false):");
-  //     String isCorrectStr = stdin.readLineSync()!;
-  //     bool isCorrect = isCorrectStr.toLowerCase() == "true";
-
-  //     question.addAnswer(Answer(
-  //       id: question.answers!.length + 1, // Assuming IDs start from 1
-  //       text: answerText,
-  //       isCorrect: isCorrect,
-  //     ));
-  //   }
-
-  //   quiz.addQuestion(question);
-  // }
-
-  // Now you have the `quiz` object with all the inputted questions and answers
-  // print(quiz); // You can print or process the quiz object as needed
-  Question ques1 = Question(
-      id: 1,
-      quizId: 1,
-      title: "what is my name",
-      questionType: QuestionType.singleQuestion,
-      answerChoices: [
-        Answer(id: 1, text: "vong1", isCorrect: true),
-        Answer(id: 2, text: "vong2", isCorrect: false),
-        Answer(id: 3, text: "vong3", isCorrect: false),
-        Answer(id: 4, text: "vong4", isCorrect: false),
-      ],
-      correctAnswers: [
-        0
-      ]);
-
-  Question ques2 = Question(
-      id: 2,
-      quizId: 1,
-      title: "what is my gf name",
-      questionType: QuestionType.multipleQuestion,
-      answerChoices: [
-        Answer(id: 1, text: "montha1", isCorrect: false),
-        Answer(id: 2, text: "montha2", isCorrect: false),
-        Answer(id: 3, text: "montha3", isCorrect: false),
-        Answer(id: 4, text: "montha4", isCorrect: false),
-      ],
-      correctAnswers: [
-        0,
-        1,
-        2
-      ]);
-  Quiz q1 = Quiz(id: 1, title: "code", questions: [ques1, ques2]);
-
-  
-
-  // q1.addQuestion(ques1);
-  // q1.addQuestion(ques2);
-  print(q1);
-
-  QuizAttempt attempt1 = QuizAttempt(id: 1, quiz: q1, userAnswers: {
-    1: [0],
-    2: [0, 1, 2]
-  });
-
-  attempt1.calculateScore();
-
-  print(attempt1.score);
+  static QuestionType fromValue(int value) {
+    return QuestionType.values.firstWhere((type) => type.value == value);
+  }
 }
-
-
-
-enum QuestionType { singleQuestion, multipleQuestion }
 
 class Question {
   final int id;
-  final int quizId;
+  int quizId;
   final String title;
   final QuestionType questionType;
   final List<Answer>? answerChoices;
@@ -143,31 +52,64 @@ class Question {
           Set<int>.from(userSelectedAnswer).containsAll(correctAnswers);
     }
   }
+
+  Future<void> insert() async{
+    var conn = await MySqlConnection.connect(settings);
+    try{
+      var result = await conn.query('INSERT INTO question(question_text, quiz_id, question_type) VALUES (?,?,?)', [title, quizId, questionType.value]);
+      int questionId = result.insertId!;
+
+      for (var answer in answerChoices!) {
+        final newAnswer = Answer(
+          id: 0, //Auto_Increment
+          questionId: questionId,
+          text: answer.text,
+          isCorrect: answer.isCorrect
+        );
+        await newAnswer.insert();
+      }
+    }
+    catch(e){
+      print(e);
+      throw Exception('Failed to insert question : $e');
+    }
+    finally{
+      await conn.close();
+    }
+  }
+
+  static Future<List<Question>> getByQuizId(int quizId) async {
+    var conn = await MySqlConnection.connect(settings);
+    try {
+      var results = await conn.query(
+        'SELECT id, question_text, quiz_id, question_type FROM question WHERE quiz_id = ?',
+        [quizId]
+      );
+      
+      List<Question> questions = [];
+      for (var row in results) {
+        var answers = await Answer.getByQuestionId(row['id']);
+        var question = Question(
+          id: row['id'],
+          quizId: row['quiz_id'],
+          title: row['question_text'],
+          questionType: QuestionType.fromValue(row['question_type']),
+          answerChoices: answers,
+          correctAnswers: answers
+            .asMap()
+            .entries
+            .where((entry) => entry.value.isCorrect)
+            .map((entry) => entry.key)
+            .toList()
+        );
+        questions.add(question);
+      }
+      return questions;
+    } catch (e) {
+      print('Failed to get questions: $e');
+      throw Exception('Failed to get questions');
+    }
+  }
+
 }
 
-
-
-
-
-
-
-//create a QuizApp clsass
-//create list of quizzes objects
-//also participant and quiz attempts initailize
-//prompt user to pick between 4 choices
-
-// 1.create quiz
-// createQuiz() to create quizzes and save it 
-
-// 2. list all quizzes
-// listQuiz()
-
-// 3.takeQuiz()
-// ask user to pick the quiz and take the quiz
-
-// 4.listAttempts()
-// attempt with score
-
-// 5.exit return
-
-//then save to database
