@@ -1,6 +1,5 @@
 import 'package:mysql1/mysql1.dart';
 import 'package:quiz_project/database.dart';
-
 import 'question.dart';
 
 class Quiz {
@@ -10,10 +9,6 @@ class Quiz {
 
   Quiz({required this.id, required this.title, required this.questions});
 
-  void addQuestion(Question question) {
-    questions.add(question);
-  }
-
   @override
   String toString() {
     return 'Quiz: $title\nQuestions:\n${questions.map((q) => q.toString()).join('\n')}\n';
@@ -22,18 +17,19 @@ class Quiz {
   Future<void> insert() async {
     var conn = await MySqlConnection.connect(settings);
     try {
-      var result =
-          await conn.query('INSERT INTO quiz(title) VALUES (?)', [title]);
+      var result = await conn.query('INSERT INTO quiz(title) VALUES (?)', [title]);
       int quizId = result.insertId!;
 
       for (var question in questions) {
         question.quizId = quizId;
         await question.insert();
       }
-    } catch (e) {
+    } 
+    catch (e) {
       print(e);
       throw Exception('Failed to insert quiz');
-    } finally {
+    } 
+    finally {
       await conn.close();
     }
   }
@@ -46,16 +42,17 @@ class Quiz {
       List<Quiz> quizzes = [];
       for (var row in result) {
         List<Question> questions = await Question.getByQuizId(row['id']);
-        var quiz = Quiz(
-            id: row['id'],
-            title: row['title'],
-            questions: questions);
+        var quiz = Quiz(id: row['id'], title: row['title'], questions: questions);
         quizzes.add(quiz);
       }
       return quizzes;
-    } catch (e) {
+    } 
+    catch (e) {
       print('Failed to get quizzes: $e');
-      return [];
+      throw Exception('Failed to get quizzes');
+    } 
+    finally {
+      await conn.close();
     }
   }
 }

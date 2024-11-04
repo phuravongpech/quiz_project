@@ -8,12 +8,13 @@ class Answer {
   final bool isCorrect;
   bool isSelected;
 
-  Answer(
-      {required this.id,
-      required this.questionId,
-      required this.text,
-      required this.isCorrect,
-      this.isSelected = false});
+  Answer({
+    required this.id,
+    required this.questionId,
+    required this.text,
+    required this.isCorrect,
+    this.isSelected = false,
+  });
 
   set selected(bool isSelected) => this.isSelected = true;
   set deselected(bool isSelected) => this.isSelected = false;
@@ -31,7 +32,7 @@ class Answer {
           [text, questionId, isCorrect ? 1 : 0]);
     } catch (e) {
       print(e);
-      throw Exception('Failed to insert participant: $e');
+      throw Exception('Failed to insert answer: $e');
     } finally {
       await conn.close();
     }
@@ -40,9 +41,8 @@ class Answer {
   static Future<List<Answer>> getByQuestionId(int questionId) async {
     var conn = await MySqlConnection.connect(settings);
     try {
-      var result = await conn.query(
-          'SELECT * FROM answer WHERE question_id = ?',
-          [questionId]);
+      var result = await conn
+          .query('SELECT * FROM answer WHERE question_id = ?', [questionId]);
 
       return result
           .map((row) => Answer(
@@ -52,9 +52,9 @@ class Answer {
               isCorrect: row['is_correct'] == 1))
           .toList();
     } catch (e) {
-      print('Failed to get answer: $e');
-      throw Exception('Failt to get answer');
-    } finally{
+      print('Failed to get answers: $e');
+      throw Exception('Failed to get answers');
+    } finally {
       await conn.close();
     }
   }

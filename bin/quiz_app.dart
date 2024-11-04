@@ -1,245 +1,33 @@
-import 'package:quiz_project/models/answer.dart';
-import 'package:quiz_project/models/participant.dart';
-import 'package:quiz_project/models/question.dart';
-import 'package:quiz_project/models/quiz.dart';
-import 'package:quiz_project/models/quiz_attempt.dart';
 import 'dart:io';
+import 'package:quiz_project/controllers/create_quiz.dart';
+import 'package:quiz_project/controllers/view_dashboard.dart';
+import 'package:quiz_project/controllers/take_quiz.dart';
 
-class QuizApp {
-  List<Quiz> quizzes = [];
-  List<QuizAttempt> quizAttempts = [];
-  List<Participant> participants = [];
+void main() async {
+  while (true) {
+    print('Welcome to the Quiz App!');
+    print('1. Create Quiz');
+    print('2. Take Quiz');
+    print('3. Show Your Score');
+    print('4. Exit');
+    stdout.write('Choose an option (1-4): ');
+    String? choice = stdin.readLineSync();
 
-  void homeMenu() {
-    while (true) {
-      print("choose :");
-      print("1. create quiz");
-      print("2. take quiz");
-      print("3. show quiz score");
-      print("4. exit");
-      print("choose one:");
-
-      String? choice = stdin.readLineSync();
-      switch (choice) {
-        case '1':
-          createQuiz();
-          break;
-        case '2':
-          takeQuiz();
-          break;
-        case '3':
-          showQuizAttempt();
-          break;
-        case '4':
-          exit(0);
-        default:
-          print("choose again");
-      }
+    switch (choice) {
+      case '1':
+        await createQuiz();
+        break;
+      case '2':
+        await takeQuiz();
+        break;
+      case '3':
+        await viewDashboard();
+        break;
+      case '4':
+        print('Exiting...');
+        exit(0);
+      default:
+        print('Invalid option. Please choose 1, 2, 3, or 4.');
     }
   }
-
-  Future<void> createQuiz() async {
-    print("input quizzes");
-    print("enter quiz title:");
-
-    String? titles = stdin.readLineSync();
-    if (titles == null || titles.isEmpty) {
-    print("Quiz title cannot be empty.");
-    return;
-  }
-    Quiz quiz = Quiz(id: quizzes.length + 1, title: titles, questions: []);
-    while (true) {
-      print("quiz title : $titles");
-      print("enter question title : (or 'e' to exit)");
-      String? questionTitle = stdin.readLineSync();
-      if (questionTitle == null || questionTitle.toLowerCase() == 'e') break;
-
-      print("question type : single or multiple");
-      print("s for single, 'm' for multiple ");
-      String? questionTypeChoice = stdin.readLineSync();
-
-      QuestionType questionType = questionTypeChoice == 's'
-          ? QuestionType.singleQuestion
-          : QuestionType.multipleQuestion;
-
-      List<Answer> answers = [];
-      List<int> correctAnswers = [];
-      for (int i = 0; i < 4; i++) {
-        print("answer ${i + 1}");
-        String? answerText = stdin.readLineSync();
-        if (answerText == null || answerText.isEmpty) break;
-
-        print("is the answer correct? (y/n)");
-        String? isCorrectString = stdin.readLineSync();
-        bool isCorrect = isCorrectString?.toLowerCase() == 'y';
-
-        if (isCorrect) {
-          correctAnswers.add(i);
-        }
-
-        Answer answer =
-            Answer(
-              id: i + 1,
-              text: answerText,
-              isCorrect: isCorrect,
-              questionId: quiz.questions.length + 1);
-        answers.add(answer);
-      }
-
-      Question question = Question(
-          id: quiz.questions.length + 1,
-          quizId: quiz.id,
-          title: questionTitle,
-          questionType: questionType,
-          answerChoices: answers,
-          correctAnswers: correctAnswers);
-
-      quiz.addQuestion(question);
-
-      print("quiz and ques created");
-    }
-    for (var q in quizzes) {
-      print(q);
-    }
-    quizzes.add(quiz);
-  }
-
-  void listQuiz() {
-    if (quizzes.isEmpty) {
-      print("no quiz yet");
-      return;
-    }
-    print("quiz : ");
-    for (var q in quizzes) {
-      print("quiz id ${q.id} : ${q.title}");
-    }
-  }
-
-  void takeQuiz() {
-    listQuiz();
-    if (quizzes.isEmpty) {
-      return;
-    }
-
-    //pick quiz when shown the list of quizzes
-    print("select quiz number");
-    int? quizNum = int.tryParse(stdin.readLineSync() ?? '');
-    if (quizNum == null || quizNum < 1 || quizNum > quizzes.length) {
-      return;
-    }
-
-    Quiz? selectedQuiz = quizzes.firstWhere((quiz) => quiz.id == quizNum);
-
-    print("enter ur name info");
-    print("first name");
-    String? firstName = stdin.readLineSync();
-    print("last name");
-    String? lastName = stdin.readLineSync();
-    if (firstName == null || lastName == null) {
-      return;
-    }
-    //save prompted user
-
-    Participant participant = Participant(
-        id: participants.length + 1, firstName: firstName, lastName: lastName);
-
-    participants.add(participant);
-
-    bool validateAnswerSelections(
-        List<int> userSelectedAnswers, Question question) {
-      if (userSelectedAnswers.isEmpty) {
-        print("No answers selected");
-        return false;
-      }
-
-      if (userSelectedAnswers.any(
-          (index) => index < 0 || index >= question.answerChoices!.length)) {
-        print("Invalid answer selection: some answers are out of bounds");
-        return false;
-      }
-
-      if (question.questionType == QuestionType.singleQuestion &&
-          userSelectedAnswers.length > 1) {
-        print("Single choice question cannot have multiple answers");
-        return false;
-      }
-
-      if (userSelectedAnswers.toSet().length != userSelectedAnswers.length) {
-        print("Duplicate answer selections are not allowed");
-        return false;
-      }
-
-      return true;
-    }
-
-    //map stores { question : [answer choices] for user to pick}
-    Map<int, List<int>> userAnswers = {};
-    for (var question in selectedQuiz.questions) {
-      print("\n${question.title}");
-      print("answers:");
-
-      for (int i = 0; i < question.answerChoices!.length; i++) {
-        print("$i. ${question.answerChoices![i].text}");
-      }
-
-      List<int> userSelectedAnswers = [];
-      bool validAnswer = false;
-
-      while (!validAnswer) {
-        if (question.questionType == QuestionType.singleQuestion) {
-          print("select one answer");
-          int? answer = int.tryParse(stdin.readLineSync() ?? '');
-          userSelectedAnswers.add(answer!);
-        } else {
-          print("can select multiple answers (space for next answer)");
-          userSelectedAnswers = stdin
-                  .readLineSync()
-                  ?.split(' ')
-                  .map((i) => int.parse(i))
-                  .toList() ??
-              [];
-        }
-        if (validateAnswerSelections(userSelectedAnswers, question)) {
-          validAnswer = true;
-        } else {
-          print('Invalid input');
-        }
-      }
-
-      userAnswers[question.id] = userSelectedAnswers;
-    }
-
-    QuizAttempt quizAttempt = QuizAttempt(
-        id: quizAttempts.length + 1,
-        quiz: selectedQuiz,
-        userAnswers: userAnswers);
-
-    quizAttempt.calculateScore();
-
-    quizAttempts.add(quizAttempt);
-    print("quiz done");
-    print(
-        "score : ${quizAttempt.score * 10} / ${selectedQuiz.questions.length * 10}");
-  }
-
-  void showQuizAttempt() {
-    if (quizAttempts.isEmpty) {
-      print("no attempt yet");
-      return;
-    }
-
-    print("quiz attempts:");
-    for (var q in quizAttempts) {
-      print("attempt id: ${q.id}");
-      print("quiz title: ${q.quiz.title}");
-      print("attempt score: ${q.score * 10} / ${q.quiz.questions.length * 10}");
-      print("=================================");
-    }
-  }
-
 }
-  void main()  {
-    QuizApp quiz = QuizApp();
-    quiz.homeMenu();
-  }
-
