@@ -9,8 +9,12 @@ enum QuestionType {
   final int value;
   const QuestionType(this.value);
 
-  static QuestionType fromValue(int value) {
-    return QuestionType.values.firstWhere((type) => type.value == value);
+  static QuestionType fromValue(dynamic value) {
+    if (value is String) {
+      return QuestionType.values.firstWhere((type) => type.name == value);
+    } else {
+      throw Exception('Unexpected question type value: $value');
+    }
   }
 }
 
@@ -37,6 +41,13 @@ class Question {
   }
 
   bool isAnswerCorrect(List<int> userSelectedAnswer) {
+    if (correctAnswers.isEmpty) {
+      print('Warning: No correct answers set for question ID $id.');
+      return false;
+    }
+
+    if (userSelectedAnswer.isEmpty) return false;
+
     if (questionType == QuestionType.singleQuestion) {
       return userSelectedAnswer.length == 1 &&
           userSelectedAnswer.first == correctAnswers.first;
@@ -50,8 +61,9 @@ class Question {
     var conn = await MySqlConnection.connect(settings);
     try {
       var result = await conn.query(
-          'INSERT INTO question(question_text, quiz_id, question_type) VALUES (?,?,?)',
-          [title, quizId, questionType.value]);
+        'INSERT INTO question(question_text, quiz_id, question_type) VALUES (?,?,?)',
+        [title, quizId, questionType.name],
+      );
       int questionId = result.insertId!;
 
       for (var answer in answerChoices!) {
@@ -62,31 +74,34 @@ class Question {
             isCorrect: answer.isCorrect);
         await newAnswer.insert();
       }
-    } 
-    catch (e) {
+    } catch (e) {
       print(e);
       throw Exception('Failed to insert question: $e');
-    } 
-    finally {
+    } finally {
       await conn.close();
     }
   }
 
-  static Future<List<Question>> getByQuizId(int quizId) async {
+  static Future<List<Question>> getByQuizId(dynamic quizId) async {
     var conn = await MySqlConnection.connect(settings);
     try {
+      final int intQuizId =
+          quizId is String ? int.parse(quizId) : quizId as int;
+
       var results = await conn.query(
-          'SELECT id, question_text, quiz_id, question_type FROM question WHERE quiz_id = ?',
-          [quizId]);
+        'SELECT id, question_text, quiz_id, question_type FROM question WHERE quiz_id = ?',
+        [intQuizId],
+      );
 
       List<Question> questions = [];
       for (var row in results) {
         var answers = await Answer.getByQuestionId(row['id']);
         var question = Question(
-            id: row['id'],
-            quizId: row['quiz_id'],
-            title: row['question_text'],
-            questionType: QuestionType.fromValue(row['question_type']),
+            id: row['id'] as int,
+            quizId: row['quiz_id'] as int,
+            title: row['question_text'] as String,
+            questionType:
+                QuestionType.fromValue(row['question_type'] as String),
             answerChoices: answers,
             correctAnswers: answers
                 .asMap()
@@ -97,12 +112,10 @@ class Question {
         questions.add(question);
       }
       return questions;
-    } 
-    catch (e) {
+    } catch (e) {
       print('Failed to get questions: $e');
       throw Exception('Failed to get questions');
-    } 
-    finally {
+    } finally {
       await conn.close();
     }
   }
