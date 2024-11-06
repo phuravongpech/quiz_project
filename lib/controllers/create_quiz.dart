@@ -27,6 +27,7 @@ Future<void> createQuiz() async {
 
     List<Answer> answers = [];
     bool hasCorrectAnswer = false;
+    int correctCount = 0;
 
     while (true) {
       stdout.write('Enter answer text: ');
@@ -46,6 +47,7 @@ Future<void> createQuiz() async {
       } else if (questionType == 2) {
         stdout.write('Is this answer correct? (y/n): ');
         isCorrect = stdin.readLineSync()!.toLowerCase() == 'y';
+        if(isCorrect) correctCount++;
       }
 
       answers.add(Answer(
@@ -57,6 +59,15 @@ Future<void> createQuiz() async {
 
       stdout.write('Add another answer? (y/n): ');
       if (stdin.readLineSync()!.toLowerCase() != 'y') break;
+    }
+
+    if(questionType == 1 && correctCount == 0){
+      print("Single choice must have at least one correct answer.");
+      continue;
+    }
+    else if(questionType == 2 && (correctCount < 2 || answers.length - correctCount < 1)){
+      print("Multiple choice must have at least two correct answer and one incorrect");
+      continue;
     }
 
     List<int> correctAnswers = [];

@@ -30,21 +30,52 @@ Future<void> takeQuiz() async {
   await participant.insert();
 
   Map<int, List<int>> userAnswers = {};
+  int currentQuestion = 0;
+  bool isQuizComplete = false;
 
-  for (var question in selectedQuiz.questions) {
+  while (!isQuizComplete) {
+    var question = selectedQuiz.questions[currentQuestion];
+    
     print('\n${question.title}');
     for (int i = 0; i < question.answerChoices!.length; i++) {
       print('${i + 1}. ${question.answerChoices![i].text}');
     }
 
-    stdout.write('enter your answer: ');
-    List<int> selected = stdin
-        .readLineSync()!
-        .split(',')
-        .map((answer) => int.parse(answer.trim()) - 1)
-        .toList();
+    stdout.write('Enter your answer (,) or type "n" next, "p" back: ');
+    String input = stdin.readLineSync()!;
 
-    userAnswers[question.id] = selected;
+    if (input.toLowerCase() == 'n') {
+      if (currentQuestion < selectedQuiz.questions.length - 1) {
+        currentQuestion++;
+      } else {
+        print('You are already at the last question.');
+      }
+    } else if (input.toLowerCase() == 'p') {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+      } else {
+        print('You are already at the first question.');
+      }
+    } else if (input.toLowerCase() == 'submit' && currentQuestion == selectedQuiz.questions.length - 1) {
+      isQuizComplete = true;
+    } else {
+      try {
+        List<int> selected = input.split(',')
+            .map((answer) => int.parse(answer.trim()) - 1)
+            .toList();
+        if (selected.any((index) => index < 0 || index >= question.answerChoices!.length)) {
+          throw FormatException('Invalid answer choice');
+        }
+        userAnswers[question.id] = selected;
+        if (currentQuestion < selectedQuiz.questions.length - 1) {
+          currentQuestion++;
+        } else {
+          print('You are at the last question. Type "submit" to complete the quiz');
+        }
+      } catch (e) {
+        print('Invalid input. Please enter valid answer choices or commands.');
+      }
+    }
   }
 
   QuizAttempt attempt = QuizAttempt(id: 0, quiz: selectedQuiz, userAnswers: userAnswers);
