@@ -12,6 +12,8 @@ enum QuestionType {
   static QuestionType fromValue(dynamic value) {
     if (value is String) {
       return QuestionType.values.firstWhere((type) => type.name == value);
+    } else if (value is int) {
+      return QuestionType.values.firstWhere((type) => type.value == value);
     } else {
       throw Exception('Unexpected question type value: $value');
     }

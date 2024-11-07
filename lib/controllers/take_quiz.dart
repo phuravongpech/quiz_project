@@ -46,7 +46,7 @@ Future<void> takeQuiz() async {
     for (int i = 0; i < question.answerChoices!.length; i++) {
       print('${i + 1}. ${question.answerChoices![i].text}');
     }
-
+    
     stdout.write('Enter your answer (,) or type "n" next, "p" back: ');
     String input = stdin.readLineSync()!.toLowerCase();
 

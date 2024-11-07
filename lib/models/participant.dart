@@ -2,7 +2,7 @@ import 'package:mysql1/mysql1.dart';
 import 'package:quiz_project/database.dart';
 
 class Participant {
-  int id; // Make id non-final so it can be set after insertion
+  int id; 
   final String name;
 
   Participant({required this.id, required this.name});
@@ -14,7 +14,7 @@ class Participant {
         'INSERT INTO participant(name) VALUES (?)',
         [name],
       );
-      id = result.insertId!; // Retrieve and set the auto-generated id
+      id = result.insertId!;
     } catch (e) {
       print(e);
       throw Exception('Failed to insert participant: $e');

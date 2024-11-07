@@ -51,7 +51,7 @@ class Quiz {
           quizzes.add(quiz);
         } catch (e) {
           print('Error processing quiz ${row['id']}: $e');
-          continue; // Skip this quiz if there's an error
+          continue;
         }
       }
       return quizzes;
