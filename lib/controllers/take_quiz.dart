@@ -23,10 +23,16 @@ Future<void> takeQuiz() async {
   int quizIndex = int.parse(stdin.readLineSync()!) - 1;
   Quiz selectedQuiz = quizzes[quizIndex];
 
-  stdout.write('enter your name: ');
-  String? name = stdin.readLineSync();
+  String? name;
+  while (name == null || name.trim().isEmpty) {
+    stdout.write('Enter your name: ');
+    name = stdin.readLineSync();
+    if (name == null || name.trim().isEmpty) {
+      print('Name cannot be empty. Please try again.');
+    }
+  }
 
-  Participant participant = Participant(id: 0, name: name!);
+  Participant participant = Participant(id: 0, name: name);
   await participant.insert();
 
   Map<int, List<int>> userAnswers = {};
@@ -35,14 +41,14 @@ Future<void> takeQuiz() async {
 
   while (!isQuizComplete) {
     var question = selectedQuiz.questions[currentQuestion];
-    
+
     print('\n${question.title}');
     for (int i = 0; i < question.answerChoices!.length; i++) {
       print('${i + 1}. ${question.answerChoices![i].text}');
     }
 
     stdout.write('Enter your answer (,) or type "n" next, "p" back: ');
-    String input = stdin.readLineSync()!;
+    String input = stdin.readLineSync()!.toLowerCase();
 
     if (input.toLowerCase() == 'n') {
       if (currentQuestion < selectedQuiz.questions.length - 1) {
@@ -56,36 +62,52 @@ Future<void> takeQuiz() async {
       } else {
         print('You are already at the first question.');
       }
-    } else if (input.toLowerCase() == 'submit' && currentQuestion == selectedQuiz.questions.length - 1) {
+    } else if (input.toLowerCase() == 'submit' &&
+        currentQuestion == selectedQuiz.questions.length - 1) {
       isQuizComplete = true;
     } else {
+      List<int> selected;
       try {
-        List<int> selected = input.split(',')
+        selected = input
+            .split(',')
             .map((answer) => int.parse(answer.trim()) - 1)
             .toList();
-        if (selected.any((index) => index < 0 || index >= question.answerChoices!.length)) {
-          throw FormatException('Invalid answer choice');
-        }
-        userAnswers[question.id] = selected;
-        if (currentQuestion < selectedQuiz.questions.length - 1) {
-          currentQuestion++;
-        } else {
-          print('You are at the last question. Type "submit" to complete the quiz');
-        }
       } catch (e) {
-        print('Invalid input. Please enter valid answer choices or commands.');
+        print('Invalid input.');
+        continue;
+      }
+
+      userAnswers[question.id] = selected;
+
+      if (currentQuestion == selectedQuiz.questions.length - 1) {
+        stdout.write(
+            'You are at the last question. Type "submit" to complete the quiz or "next" to go to the next question: ');
+        String nextAction = stdin.readLineSync()!;
+        if (nextAction.toLowerCase() == 'submit') {
+          isQuizComplete = true;
+        } else {
+          currentQuestion++;
+        }
+      } else {
+        currentQuestion++;
       }
     }
   }
 
-  QuizAttempt attempt = QuizAttempt(id: 0, quiz: selectedQuiz, userAnswers: userAnswers);
+  QuizAttempt attempt =
+      QuizAttempt(id: 0, quiz: selectedQuiz, userAnswers: userAnswers);
   attempt.calculateScore();
 
   final conn = await MySqlConnection.connect(settings);
   try {
     await conn.query(
       'INSERT INTO dashboard(participant_id, quiz_id, participant_score, question_total) VALUES (?,?,?,?)',
-      [participant.id, selectedQuiz.id, attempt.score, selectedQuiz.questions.length],
+      [
+        participant.id,
+        selectedQuiz.id,
+        attempt.score,
+        selectedQuiz.questions.length
+      ],
     );
   } catch (e) {
     print('Failed to save quiz attempt: $e');
@@ -93,5 +115,6 @@ Future<void> takeQuiz() async {
     await conn.close();
   }
 
-  print('Quiz Completed! Your Score: ${attempt.score}/${selectedQuiz.questions.length}');
+  print(
+      'Quiz Completed! Your Score: ${attempt.score}/${selectedQuiz.questions.length}');
 }
