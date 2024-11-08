@@ -21,30 +21,37 @@ enum QuestionType {
 }
 
 class Question {
-  final int id;
+  final int _id;
   int quizId;
-  final String title;
+  final String _title;
   final QuestionType questionType;
-  final List<Answer>? answerChoices;
-  final List<int> correctAnswers;
+  final List<Answer>? _answerChoices;
+  final List<int> _correctAnswers;
 
   Question({
-    required this.id,
+    required int id,
     required this.quizId,
-    required this.title,
+    required String title,
     required this.questionType,
-    required this.answerChoices,
-    required this.correctAnswers,
-  });
+    required List<Answer>? answerChoices,
+    required List<int> correctAnswers,
+  })  : _id = id,
+        _title = title,
+        _answerChoices = answerChoices,
+        _correctAnswers = correctAnswers;
+
+  get id => _id;
+  get title => _title;
+  get answerChoices => _answerChoices;
 
   @override
   String toString() {
-    return '$title (${questionType == QuestionType.singleQuestion ? 'Single Choice' : 'Multiple Choice'})\n  Answers:\n${answerChoices!.map((a) => '    ${a.toString()}').join('\n')}\nCorrect Answers: ${correctAnswers.map((i) => answerChoices![i].text).join(', ')}';
+    return '$_title (${questionType == QuestionType.singleQuestion ? 'Single Choice' : 'Multiple Choice'})\n  Answers:\n${_answerChoices!.map((a) => '    ${a.toString()}').join('\n')}\nCorrect Answers: ${_correctAnswers.map((i) => _answerChoices[i].text).join(', ')}';
   }
 
   bool isAnswerCorrect(List<int> userSelectedAnswer) {
-    if (correctAnswers.isEmpty) {
-      print('Warning: No correct answers set for question ID $id.');
+    if (_correctAnswers.isEmpty) {
+      print('Warning: No correct answers set for question ID $_id.');
       return false;
     }
 
@@ -52,10 +59,10 @@ class Question {
 
     if (questionType == QuestionType.singleQuestion) {
       return userSelectedAnswer.length == 1 &&
-          userSelectedAnswer.first == correctAnswers.first;
+          userSelectedAnswer.first == _correctAnswers.first;
     } else {
-      return Set<int>.from(correctAnswers).containsAll(userSelectedAnswer) &&
-          Set<int>.from(userSelectedAnswer).containsAll(correctAnswers);
+      return Set<int>.from(_correctAnswers).containsAll(userSelectedAnswer) &&
+          Set<int>.from(userSelectedAnswer).containsAll(_correctAnswers);
     }
   }
 
@@ -68,7 +75,7 @@ class Question {
       );
       int questionId = result.insertId!;
 
-      for (var answer in answerChoices!) {
+      for (var answer in _answerChoices!) {
         final newAnswer = Answer(
             id: 0, // Auto_Increment
             questionId: questionId,

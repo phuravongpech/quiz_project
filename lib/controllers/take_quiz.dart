@@ -81,7 +81,7 @@ Future<void> takeQuiz() async {
 
       if (currentQuestion == selectedQuiz.questions.length - 1) {
         stdout.write(
-            'You are at the last question. Type "submit" to complete the quiz or "next" to go to the next question: ');
+            'Type "submit" to complete the quiz: ');
         String nextAction = stdin.readLineSync()!;
         if (nextAction.toLowerCase() == 'submit') {
           isQuizComplete = true;

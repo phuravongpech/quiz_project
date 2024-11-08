@@ -2,22 +2,30 @@ import 'package:mysql1/mysql1.dart';
 import 'package:quiz_project/database.dart';
 
 class Answer {
-  final int id;
-  int questionId;
-  final String text;
-  final bool isCorrect;
+  final int _id;
+  final int _questionId;
+  final String _text;
+  final bool _isCorrect;
   bool isSelected;
 
   Answer({
-    required this.id,
-    required this.questionId,
-    required this.text,
-    required this.isCorrect,
+    required int id,
+    required int questionId,
+    required String text,
+    required bool isCorrect,
     this.isSelected = false,
-  });
+  })  : _id = id,
+        _questionId = questionId,
+        _text = text,
+        _isCorrect = isCorrect;
+        
+  get id => _id;
+  get questionId => _questionId;
+  get text => _text;
+  get isCorrect => _isCorrect;
 
-  set selected(bool isSelected) => this.isSelected = true;
-  set deselected(bool isSelected) => this.isSelected = false;
+  set selected(bool isSelected) => isSelected = true;
+  set deselected(bool isSelected) => isSelected = false;
 
   @override
   String toString() {
